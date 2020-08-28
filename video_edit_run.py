@@ -461,5 +461,5 @@ else:
 video2 = VideoFileClip(
     final_video_path+'finalvideo.mp4')
 video2 = video2.set_audio(audio)  # 设置
-video2.write_videofile(final_video_path+'finalvideo.mp4')
+video2.write_videofile(final_video_path+'finalvideo2.mp4')
 
