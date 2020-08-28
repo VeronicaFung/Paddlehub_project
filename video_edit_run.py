@@ -2,17 +2,23 @@
 # 1. 照片人像识别    # ，替换为skeleton
 # 2. 用替换后的照片模仿视频跳舞
 
-import matplotlib.pyplot as plt
-import argparse
-import matplotlib.image as mpimg
 import os
-from PIL import Image
 import cv2
 import numpy as np
 import paddlehub as hub
+import argparse
+import matplotlib.pyplot as plt
+import matplotlib.image as mpimg
+from PIL import Image
 from moviepy.editor import *
+import moviepy.editor as mpe
 import shutil
-import os
+
+# create new folder
+def mkdir(path):
+    folder = os.path.exists(path)
+    if not folder:
+        os.makedirs(path)
 
 
 # 将视频拆分为图片
@@ -40,12 +46,13 @@ def video_split(video_path, pic_path, timeF):
 # 1 拼接成视频的函数
 
 
-def picvideo(path, size):
+def picvideo(path, size, file_path):
     # path = r'C:\Users\Administrator\Desktop\1\huaixiao\\'#文件路径
     filelist = os.listdir(path)  # 获取该目录下的所有文件名
     fps = 30
     # size = (591,705) #图片的分辨率片
-    file_path = r"G:/library/baidu_deeplearning/paddle_hub_project/output/finalvideo1.mp4"  # 导出路径
+    file_path = file_path+"finalvideo.mp4"
+    # file_path = r"G:/library/baidu_deeplearning/paddle_hub_project/output/finalvideo1.mp4"  # 导出路径
     # 不同视频编码对应不同视频格式（例：'I','4','2','0' 对应avi格式）
     fourcc = cv2.VideoWriter_fourcc('D', 'I', 'V', 'X')
     video = cv2.VideoWriter(file_path, fourcc, fps, size)
@@ -265,56 +272,104 @@ def put_together(img1, img2):
 # 按帧分解视频图片
 
 # 接入参数
-parser = argparse.ArgumentParser(description='Batch Register')
-parser.add_argument('--BoxIP', type=str, default=None,
-                    help='The box ip address')
-parser.add_argument('--group_id', type=str, default=None,
-                    help='The test group id')
-try:
-    parser.add_argument('--index', type=str, default=None,
-                        help='The test group id')
-except Exception as e:
-    print(e)
-args = parser.parse_args()
+parser = argparse.ArgumentParser(description='Input')
+parser.add_argument('--path_to_files', type=str,
+                    default=None, help='Directory to load all prepared files.')
+parser.add_argument('--video_path_action', type=str,
+                    default=None, help='Directory to load dance video.')
+parser.add_argument('--timeF_action', type=int, default=None,
+                    help='Time between two pictures from dance video.')
+parser.add_argument('--video_path_bg', type=str, default=None,
+                    help='Directory to load background video, for example black and white movie.')
+parser.add_argument('--timeF_bg', type=int, default=None,
+                    help='Time between two pictures from background video.')
+parser.add_argument('--face_pic_path1', type=str,
+                    default=None, help='Dance battle competitor 1.')
+parser.add_argument('--face_pic_path2', type=str,
+                    default=None, help='Dance battle competitor 2.')
+parser.add_argument('--music_path', type=str,
+                    default=None, help='Directory to music file.')
+parser.add_argument('--final_video_path', type=str,
+                    default=None, help='Directory to save final video.')
+
+args, unknown = parser.parse_known_args()
 print(args)
 
-BoxIP = args.BoxIP
-group_id = args.group_id
+path_to_files = args.path_to_files
+video_path_action = args.video_path_action
+timeF_action = args.timeF_action
+video_path_bg = args.video_path_bg
+timeF_bg = args.timeF_bg
+face_pic_path1 = args.face_pic_path1
+face_pic_path2 = args.face_pic_path2
+music_path = args.music_path
+final_video_path = args.final_video_path
+
+# create necessary folders
+video_path_action = path_to_files + video_path_action
+video_path_bg = path_to_files + video_path_bg
+face_pic_path1 = path_to_files + face_pic_path1
+face_pic_path2 = path_to_files + face_pic_path2
+music_path = path_to_files + music_path
+final_video_path = path_to_files + final_video_path
+mkdir(path = video_path_action)
+mkdir(path = video_path_bg)
+mkdir(path = face_pic_path1)
+mkdir(path = face_pic_path2)
+mkdir(path = music_path)
+mkdir(path = final_video_path)
 
 
-video_path_action = 'G:/library/baidu_deeplearning/paddle_hub_project/input/videos/video7.mp4'
-pic_path_action = 'G:/library/baidu_deeplearning/paddle_hub_project/input/videos/movie_action/'
-video_split(video_path=video_path_action, pic_path=pic_path_action, timeF=100)
+# video_path_action = 'G:/library/baidu_deeplearning/paddle_hub_project/input/videos/video7.mp4'
+#pic_path_action = 'G:/library/baidu_deeplearning/paddle_hub_project/input/videos/pic_actionvideo/'
+pic_path_action = path_to_files + '/pic_actionvideo/'
+mkdir(path = pic_path_action)
+# timeF_action = 100
+video_split(video_path=video_path_action,
+            pic_path=pic_path_action, timeF=timeF_action)
 
-video_path_bg = 'G:/library/baidu_deeplearning/paddle_hub_project/input/videos/video4.mp4'
-pic_path_bg = 'G:/library/baidu_deeplearning/paddle_hub_project/input/videos/movie_bg/'
-video_split(video_path=video_path_bg, pic_path=pic_path_bg, timeF=100)
+# video_path_bg = 'G:/library/baidu_deeplearning/paddle_hub_project/input/videos/video4.mp4'
+#pic_path_bg = 'G:/library/baidu_deeplearning/paddle_hub_project/input/videos/pic_bgvideo/'
+pic_path_bg = path_to_files + '/pic_bgvideo/'
+mkdir(path =  pic_path_bg)
+# timeF_bg = 100
+video_split(video_path=video_path_bg,
+            pic_path=pic_path_bg, timeF=timeF_bg)
 
-# save backgraound video picture number as the video length
-videolength = n
-face_pic_path1 = "G:/library/baidu_deeplearning/paddle_hub_project/input/photos/face_img.jpg"
-facechanged_pic_path1 = "G:/library/baidu_deeplearning/paddle_hub_project/input/face_chaged/"
+# the smaller number of pictures from two videos will be taken as the length of video
+videolength1 = len([lists for lists in os.listdir(
+    pic_path_action) if os.path.isfile(os.path.join(pic_path_action, lists))])
+videolength2 = len([lists for lists in os.listdir(
+    pic_path_bg) if os.path.isfile(os.path.join(pic_path_bg, lists))])
+videolength = min(videolength1, videolength2)
+
+# face_pic_path1 = "G:/library/baidu_deeplearning/paddle_hub_project/input/photos/face_img.jpg"
+# facechanged_pic_path1 = "G:/library/baidu_deeplearning/paddle_hub_project/input/face_chaged1/"
+facechanged_pic_path1 = path_to_files + "/face_chaged1/"
+mkdir(path=facechanged_pic_path1)
+
 for i in range(1, videolength):
     path2 = pic_path_action+str(i)+'.jpg'
     new_path = facechanged_pic_path1+str(i)+'.jpg'
     change_face(im_name1=path1, im_name2=path2, new_path=new_path)
 
-face_pic_path2 = "G:/library/baidu_deeplearning/paddle_hub_project/input/photos/face_img2.jpg"
-facechanged_pic_path2 = "G:/library/baidu_deeplearning/paddle_hub_project/input/face_chaged2/"
+# face_pic_path2 = "G:/library/baidu_deeplearning/paddle_hub_project/input/photos/face_img2.jpg"
+#facechanged_pic_path2 = "G:/library/baidu_deeplearning/paddle_hub_project/input/face_chaged2/"
+facechanged_pic_path2 = path_to_files + "/face_chaged2/"
+mkdir(path=facechanged_pic_path2)
+
 for i in range(1, videolength):
     path2 = face_pic_path2+str(i)+'.jpg'
     new_path = facechanged_pic_path2+str(i)+'.jpg'
     change_face(im_name1=path1, im_name2=path2, new_path=new_path)
-
+    img = mpimg.imread(new_path)
+    img = img[:, ::-1, :]
+    cv2.imwrite(new_path)
 
 # 4 抠图+视频背景替换
-
-module = hub.Module(name="deeplabv3p_xception65_humanseg")
-
 # 设置一个if loop，不存储无人像的图片
-
-
 def video_bg_change(pic_path, pic_save_path, bg_dir, pic_changedbg_path, videolength):
+    module = hub.Module(name="deeplabv3p_xception65_humanseg")
     for i in range(1, videolength):
         img_path = [facechanged_pic_path2+str(i)+'.jpg']
         humanseg(img_path=img_path, outputpath=fore_dir)
@@ -325,32 +380,47 @@ def video_bg_change(pic_path, pic_save_path, bg_dir, pic_changedbg_path, videole
         blend_images(fore_image, bg_image, i, pic_changedbg_path)
 
 
-bg_dir = 'G:/library/baidu_deeplearning/paddle_hub_project/input/videos/base_img2/'
-fore_dir1 = 'G:/library/baidu_deeplearning/paddle_hub_project/input/photo_edited_face_chaged1/'
-facechanged_pic_path1 = "G:/library/baidu_deeplearning/paddle_hub_project/input/face_chaged1/"
-pic_changedbg_path1 = 'G:/library/baidu_deeplearning/paddle_hub_project/input/final1/'
+# 'G:/library/baidu_deeplearning/paddle_hub_project/input/videos/base_img2/'
+# bg_dir = pic_path_bg
+# fore_dir1 = 'G:/library/baidu_deeplearning/paddle_hub_project/input/photo_edited_face_chaged1/'
+fore_dir1 = path_to_files + '/photo_edited_face_chaged1/'
+mkdir(path = fore_dir1)
+# "G:/library/baidu_deeplearning/paddle_hub_project/input/face_chaged1/"
+# facechanged_pic_path1 = facechanged_pic_path1
+#pic_changedbg_path1 = 'G:/library/baidu_deeplearning/paddle_hub_project/input/final1/'
+pic_changedbg_path1 = path_to_files + '/final1/'
+mkdir(path = pic_changedbg_path1)
 
-fore_dir2 = 'G:/library/baidu_deeplearning/paddle_hub_project/input/photo_edited_face_chaged2/'
-facechanged_pic_path2 = "G:/library/baidu_deeplearning/paddle_hub_project/input/face_chaged2/"
-pic_changedbg_path1 = 'G:/library/baidu_deeplearning/paddle_hub_project/input/final2/'
+#fore_dir2 = 'G:/library/baidu_deeplearning/paddle_hub_project/input/photo_edited_face_chaged2/'
+fore_dir2 = path_to_files + '/photo_edited_face_chaged2/'
+mkdir(path = fore_dir2)
+# "G:/library/baidu_deeplearning/paddle_hub_project/input/face_chaged2/"
+# facechanged_pic_path2 = facechanged_pic_path2
+#pic_changedbg_path2 = 'G:/library/baidu_deeplearning/paddle_hub_project/input/final2/'
+pic_changedbg_path2 = path_to_files + '/final2/'
+mkdir(path = pic_changedbg_path2)
 
 video_bg_change(pic_path=facechanged_pic_path1,
                 pic_save_path=pic_changedbg_path1,
-                bg_dir=bg_dir,
+                bg_dir=pic_path_bg,
                 fore_dir=fore_dir1,
-                videolength = videolength)
+                videolength=videolength)
 
 
 video_bg_change(pic_path=facechanged_pic_path2,
                 pic_save_path=pic_changedbg_path2,
-                bg_dir=bg_dir,
-                fore_dir = fore_dir2,
-                videolength = videolength)
+                bg_dir=pic_path_bg,
+                fore_dir=fore_dir2,
+                videolength=videolength)
 # 3 dance battle function
 
-facechanged_pic_path1 = "G:/library/baidu_deeplearning/paddle_hub_project/input/face_chaged/"
-facechanged_pic_path2 = "G:/library/baidu_deeplearning/paddle_hub_project/input/face_chaged2/"
-facechanged_pic_merged = "G:/library/baidu_deeplearning/paddle_hub_project/input/face_chaged_put_together/"
+# "G:/library/baidu_deeplearning/paddle_hub_project/input/face_chaged/"
+# facechanged_pic_path1 = facechanged_pic_path1
+# "G:/library/baidu_deeplearning/paddle_hub_project/input/face_chaged2/"
+# facechanged_pic_path2 = facechanged_pic_path2
+#facechanged_pic_merged = "G:/library/baidu_deeplearning/paddle_hub_project/input/face_chaged_put_together/"
+facechanged_pic_merged = path_to_files + '/face_chaged_put_together/'
+mkdir(path = facechanged_pic_merged)
 for i in range(1, videolength):
     im_name1 = facechanged_pic_path1 + str(i) + '.jpg'
     im_name2 = facechanged_pic_path2 + str(i) + '.jpg'
@@ -361,72 +431,25 @@ for i in range(1, videolength):
     import matplotlib.image as mpimg
     mpimg.imsave(new_name2, new_img)
 
-new_video_path = 'G:/library/baidu_deeplearning/paddle_hub_project/input/face_chaged_put_together/'
+# new_video_path = facechanged_pic_merged # 'G:/library/baidu_deeplearning/paddle_hub_project/input/face_chaged_put_together/'
+# final_video_path = 'G:/library/baidu_deeplearning/paddle_hub_project/output/'
+
 img = Image.open(facechanged_pic_merged + '1.jpg')
 # img.size
-picvideo(new_video_path, img.size)
+picvideo(path=facechanged_pic_merged,
+         size=img.size, file_path=final_video_path)
 
 # adding sound
-music_path = 'G:/library/baidu_deeplearning/paddle_hub_project/input/videos/video7_music.mp3'
-video = VideoFileClip(pic_path_action)
-audio = video.audio
-audio.write_audiofile(music_path)
-
-final_video_path = 'G:/library/baidu_deeplearning/paddle_hub_project/output/finalvideo_music4.mp4'
-video2 = VideoFileClip(
-    'G:/library/baidu_deeplearning/paddle_hub_project/output/finalvideo1.mp4')
-video2 = video2.set_audio(audio)  # 设置
-video2.write_videofile(final_video_path)
-
-
-
-
-
-
-# 功能2
-face_pic_path = "G:/library/baidu_deeplearning/paddle_hub_project/input/photos/face_img3.jpg"
-dir2 = "G:/library/baidu_deeplearning/paddle_hub_project/input/videos/movie7/"
-newdir = "G:/library/baidu_deeplearning/paddle_hub_project/input/face_chaged3/"
-for i in range(1, videolength):
-    path2 = dir2+str(i)+'.jpg'
-    new_path = newdir+str(i)+'.jpg'
-    change_face(im_name1=face_pic_path1, im_name2=path2, new_path=new_path)
-
-# 4 舞蹈背景替换
-
-
-img_dir = "G:/library/baidu_deeplearning/paddle_hub_project/input/face_chaged2/"
-base_dir = 'G:/library/baidu_deeplearning/paddle_hub_project/input/videos/base_img2/'
-fore_dir = 'G:/library/baidu_deeplearning/paddle_hub_project/input/photo_edited_face_chaged2/'
-savepath = 'G:/library/baidu_deeplearning/paddle_hub_project/input/final2/'
-module = hub.Module(name="deeplabv3p_xception65_humanseg")
-
-# 设置一个if loop，不存储无人像的图片
-for i in range(1, videolength):
-    img_path = [img_dir+str(i)+'.jpg']
-    humanseg(img_path=img_path, outputpath=fore_dir)
-
-for i in range(1, videolength):
-    fore_image = fore_dir+str(i)+'.png'
-    base_image = base_dir+str(i)+'.jpg'
-    blend_images(fore_image, base_image, i, savepath)
-
-
-img = Image.open(
-    'G:/library/baidu_deeplearning/paddle_hub_project/input/final2/1.jpg')
-img.size
-picvideo(r'G:/library/baidu_deeplearning/paddle_hub_project/input/final2/', img.size)
-
-# 5 视频添加音乐
-
-video = VideoFileClip(
-    'G:/library/baidu_deeplearning/paddle_hub_project/input/videos/video7.mp4')
-audio = video.audio
-audio.write_audiofile(
-    'G:/library/baidu_deeplearning/paddle_hub_project/input/videos/video7_music.mp3')
+# music_path = 'G:/library/baidu_deeplearning/paddle_hub_project/input/videos/video7_music.mp3'
+if not os.path.exists(music_path):
+    video = VideoFileClip(video_path_action)
+    audio = video.audio
+    audio.write_audiofile(music_path)
+else:
+    audio = mpe.AudioFileClip(music_path)
 
 video2 = VideoFileClip(
-    'G:/library/baidu_deeplearning/paddle_hub_project/output/finalvideo1.mp4')
+    final_video_path+'finalvideo.mp4')
 video2 = video2.set_audio(audio)  # 设置
-video2.write_videofile(
-    'G:/library/baidu_deeplearning/paddle_hub_project/output/finalvideo_music5.mp4')
+video2.write_videofile(final_video_path+'finalvideo.mp4')
+

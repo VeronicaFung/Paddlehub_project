@@ -1,0 +1,9 @@
+os
+cv2
+numpy
+paddlehub
+argparse
+matplotlib
+PIL
+moviepy.editor
+shutil
