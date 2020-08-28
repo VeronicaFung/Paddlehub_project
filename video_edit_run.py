@@ -46,10 +46,10 @@ def video_split(video_path, pic_path, timeF):
 # 1 拼接成视频的函数
 
 
-def picvideo(path, size, file_path):
+def picvideo(path, fps, size, file_path):
     # path = r'C:\Users\Administrator\Desktop\1\huaixiao\\'#文件路径
     filelist = os.listdir(path)  # 获取该目录下的所有文件名
-    fps = 30
+    #fps = 30
     # size = (591,705) #图片的分辨率片
     file_path = file_path+"finalvideo.mp4"
     # file_path = r"G:/library/baidu_deeplearning/paddle_hub_project/output/finalvideo1.mp4"  # 导出路径
@@ -78,7 +78,7 @@ def get_image_size(image):
     return image_size
 
 
-def get_face_landmarks(image):
+def get_face_landmarks(image, module1):
     """
     获取人脸标志，68个特征点
     :param image: image
@@ -87,10 +87,10 @@ def get_face_landmarks(image):
     :return: np.array([[],[]]), 68个特征点
     """
     #dets = face_landmark.keypoint_detection([image])
-    module = hub.Module(name="face_landmark_localization")
+    # module = hub.Module(name="face_landmark_localization")
     #img = cv2.imread("".join(path))
     #img = cv2.resize(img, (600, img.shape[0] * 600 // img.shape[1]))
-    dets = module.keypoint_detection(images=[image])
+    dets = module1.keypoint_detection(images=[image])
     #num_faces = len(dets[0]['data'][0])
     if len(dets) == 0:
         print("Sorry, there were no faces found.")
@@ -186,7 +186,7 @@ def skin_color_adjustment(im1, im2, mask=None):
     return im1
 
 
-def change_face(im_name1, im_name2, new_path):
+def change_face(im_name1, im_name2, module1, new_path):
     """
     :param im1: 要替换成的人脸图片或文件名
     :param im_name2: 原始人脸图片文件名
@@ -194,16 +194,20 @@ def change_face(im_name1, im_name2, new_path):
     """
     if isinstance(im_name1, str):
         im1 = cv2.imread(im_name1)  # face_image
+        b,g,r = cv2.split(im1)
+        im1 = cv2.merge([r,g,b])
     else:
         im1 = im_name1
     im1 = cv2.resize(im1, (600, im1.shape[0] * 600 // im1.shape[1]))
-    landmarks1 = get_face_landmarks(im1)  # 68_face_landmarks
+    landmarks1 = get_face_landmarks(im1, module1=module1)  # 68_face_landmarks
 
     im1_size = get_image_size(im1)  # 脸图大小
     im1_mask = get_face_mask(im1_size, landmarks1)  # 脸图人脸掩模
 
     im2 = cv2.imread(im_name2)
-    landmarks2 = get_face_landmarks(im2)  # 68_face_landmarks
+    b,g,r = cv2.split(im2)
+    im2 = cv2.merge([r,g,b])
+    landmarks2 = get_face_landmarks(im2, module1=module1)  # 68_face_landmarks
     if landmarks2 is not None:
         im2_size = get_image_size(im2)  # 摄像头图片大小
         im2_mask = get_face_mask(im2_size, landmarks2)  # 摄像头图片人脸掩模
@@ -226,11 +230,11 @@ def change_face(im_name1, im_name2, new_path):
 # 1） 批量抠图
 
 
-def humanseg(img_path, outputpath):
+def humanseg(img_path, outputpath, module2):
     input_dict = {"image": img_path}
     #outputpath = 'G:/library/baidu_deeplearning/paddle_hub_project/input/photo_edited1/'
     # execute predict and print the result
-    module.segmentation(data=input_dict, visualization=True,
+    module2.segmentation(data=input_dict, visualization=True,
                         output_dir=outputpath)
     return None
 # 2） 并黏贴到背景图
@@ -289,6 +293,8 @@ parser.add_argument('--face_pic_path2', type=str,
                     default=None, help='Dance battle competitor 2.')
 parser.add_argument('--music_path', type=str,
                     default=None, help='Directory to music file.')
+parser.add_argument('--fps', type=int, default=None,
+                    help='Time between two pictures when connecting video.')
 parser.add_argument('--final_video_path', type=str,
                     default=None, help='Directory to save final video.')
 
@@ -303,6 +309,7 @@ timeF_bg = args.timeF_bg
 face_pic_path1 = args.face_pic_path1
 face_pic_path2 = args.face_pic_path2
 music_path = args.music_path
+fps = args.fps
 final_video_path = args.final_video_path
 
 # create necessary folders
@@ -311,14 +318,15 @@ video_path_bg = path_to_files + video_path_bg
 face_pic_path1 = path_to_files + face_pic_path1
 face_pic_path2 = path_to_files + face_pic_path2
 music_path = path_to_files + music_path
-final_video_path = path_to_files + final_video_path
 mkdir(path = video_path_action)
 mkdir(path = video_path_bg)
 mkdir(path = face_pic_path1)
 mkdir(path = face_pic_path2)
-mkdir(path = music_path)
+# mkdir(path = music_path)
 mkdir(path = final_video_path)
 
+module1 = hub.Module(name="face_landmark_localization")
+module2 = hub.Module(name="deeplabv3p_xception65_humanseg")
 
 # video_path_action = 'G:/library/baidu_deeplearning/paddle_hub_project/input/videos/video7.mp4'
 #pic_path_action = 'G:/library/baidu_deeplearning/paddle_hub_project/input/videos/pic_actionvideo/'
@@ -351,7 +359,7 @@ mkdir(path=facechanged_pic_path1)
 for i in range(1, videolength):
     path2 = pic_path_action+str(i)+'.jpg'
     new_path = facechanged_pic_path1+str(i)+'.jpg'
-    change_face(im_name1=path1, im_name2=path2, new_path=new_path)
+    change_face(im_name1=face_pic_path1, im_name2=path2, module1 = module1, new_path=new_path)
 
 # face_pic_path2 = "G:/library/baidu_deeplearning/paddle_hub_project/input/photos/face_img2.jpg"
 #facechanged_pic_path2 = "G:/library/baidu_deeplearning/paddle_hub_project/input/face_chaged2/"
@@ -359,25 +367,25 @@ facechanged_pic_path2 = path_to_files + "/face_chaged2/"
 mkdir(path=facechanged_pic_path2)
 
 for i in range(1, videolength):
-    path2 = face_pic_path2+str(i)+'.jpg'
+    path2 = pic_path_action+str(i)+'.jpg'
     new_path = facechanged_pic_path2+str(i)+'.jpg'
-    change_face(im_name1=path1, im_name2=path2, new_path=new_path)
+    change_face(im_name1=face_pic_path2, im_name2=path2, module1 = module1, new_path=new_path)
     img = mpimg.imread(new_path)
     img = img[:, ::-1, :]
-    cv2.imwrite(new_path)
+    cv2.imwrite( new_path, img)
 
 # 4 抠图+视频背景替换
 # 设置一个if loop，不存储无人像的图片
-def video_bg_change(pic_path, pic_save_path, bg_dir, pic_changedbg_path, videolength):
-    module = hub.Module(name="deeplabv3p_xception65_humanseg")
+def video_bg_change(module2, pic_path, pic_save_path, bg_dir, fore_dir, videolength):
+    #module = hub.Module(name="deeplabv3p_xception65_humanseg")
     for i in range(1, videolength):
-        img_path = [facechanged_pic_path2+str(i)+'.jpg']
-        humanseg(img_path=img_path, outputpath=fore_dir)
+        img_path = [pic_path+str(i)+'.jpg']
+        humanseg(img_path=img_path, outputpath=fore_dir, module2 = module2)
 
     for i in range(1, videolength):
         fore_image = fore_dir+str(i)+'.png'
         base_image = bg_dir+str(i)+'.jpg'
-        blend_images(fore_image, bg_image, i, pic_changedbg_path)
+        blend_images(fore_image, base_image, i, pic_save_path)
 
 
 # 'G:/library/baidu_deeplearning/paddle_hub_project/input/videos/base_img2/'
@@ -390,6 +398,13 @@ mkdir(path = fore_dir1)
 #pic_changedbg_path1 = 'G:/library/baidu_deeplearning/paddle_hub_project/input/final1/'
 pic_changedbg_path1 = path_to_files + '/final1/'
 mkdir(path = pic_changedbg_path1)
+video_bg_change(module2 = module2,
+                pic_path = facechanged_pic_path1,
+                pic_save_path = pic_changedbg_path1,
+                bg_dir = pic_path_bg,
+                fore_dir = fore_dir1,
+                videolength = videolength)
+
 
 #fore_dir2 = 'G:/library/baidu_deeplearning/paddle_hub_project/input/photo_edited_face_chaged2/'
 fore_dir2 = path_to_files + '/photo_edited_face_chaged2/'
@@ -400,18 +415,12 @@ mkdir(path = fore_dir2)
 pic_changedbg_path2 = path_to_files + '/final2/'
 mkdir(path = pic_changedbg_path2)
 
-video_bg_change(pic_path=facechanged_pic_path1,
-                pic_save_path=pic_changedbg_path1,
-                bg_dir=pic_path_bg,
-                fore_dir=fore_dir1,
-                videolength=videolength)
-
-
-video_bg_change(pic_path=facechanged_pic_path2,
-                pic_save_path=pic_changedbg_path2,
-                bg_dir=pic_path_bg,
-                fore_dir=fore_dir2,
-                videolength=videolength)
+video_bg_change(module2 = module2,
+                pic_path = facechanged_pic_path2,
+                pic_save_path = pic_changedbg_path2,
+                bg_dir = pic_path_bg,
+                fore_dir = fore_dir2,
+                videolength = videolength)
 # 3 dance battle function
 
 # "G:/library/baidu_deeplearning/paddle_hub_project/input/face_chaged/"
@@ -422,8 +431,8 @@ video_bg_change(pic_path=facechanged_pic_path2,
 facechanged_pic_merged = path_to_files + '/face_chaged_put_together/'
 mkdir(path = facechanged_pic_merged)
 for i in range(1, videolength):
-    im_name1 = facechanged_pic_path1 + str(i) + '.jpg'
-    im_name2 = facechanged_pic_path2 + str(i) + '.jpg'
+    im_name1 = pic_changedbg_path1 + str(i) + '.jpg'
+    im_name2 = pic_changedbg_path2 + str(i) + '.jpg'
     new_name2 = facechanged_pic_merged + str(i) + '.jpg'
     img1 = mpimg.imread(im_name1)
     img2 = mpimg.imread(im_name2)
@@ -436,7 +445,7 @@ for i in range(1, videolength):
 
 img = Image.open(facechanged_pic_merged + '1.jpg')
 # img.size
-picvideo(path=facechanged_pic_merged,
+picvideo(path=facechanged_pic_merged,fps=fps,
          size=img.size, file_path=final_video_path)
 
 # adding sound
@@ -446,6 +455,7 @@ if not os.path.exists(music_path):
     audio = video.audio
     audio.write_audiofile(music_path)
 else:
+    import moviepy.editor as mpe
     audio = mpe.AudioFileClip(music_path)
 
 video2 = VideoFileClip(
